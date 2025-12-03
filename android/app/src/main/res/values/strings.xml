@@ -1,7 +1,6 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ServiceHub</string>
-    <string name="title_activity_main">ServiceHub</string>
-    <string name="package_name">com.servicehub.app</string>
-    <string name="custom_url_scheme">com.servicehub.app</string>
+    <string name="app_version">1.0</string>
+    <string name="app_description">Your unified service booking platform</string>
 </resources>

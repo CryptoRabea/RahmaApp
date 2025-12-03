@@ -1,0 +1,217 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  phone         String?
+  password      String?
+  avatar        String?
+  role          UserRole @default(CLIENT)
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  bookings      Booking[]
+  posts         SocialPost[]
+  reviews       Review[]
+  notifications Notification[]
+  comments      Comment[]
+  driverRides   DriverRide[]
+  
+  // Supplier specific
+  services      Service[]
+  subscription  Subscription?
+  balance       Float    @default(0)
+}
+
+model Service {
+  id            String       @id @default(cuid())
+  title         String
+  description   String
+  category      ServiceType
+  price         Float
+  images        String? // JSON string of image URLs
+  location      String?
+  availability  Boolean      @default(true)
+  supplierId    String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  // Relations
+  supplier      User         @relation(fields: [supplierId], references: [id])
+  bookings      Booking[]
+  reviews       Review[]
+}
+
+model Booking {
+  id            String       @id @default(cuid())
+  serviceId     String
+  clientId      String
+  status        BookingStatus @default(PENDING)
+  totalAmount   Float
+  paymentProof  String? // URL of uploaded screenshot
+  paymentVerified Boolean    @default(false)
+  bookingDate   DateTime?
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  // Relations
+  service       Service      @relation(fields: [serviceId], references: [id])
+  client        User         @relation(fields: [clientId], references: [id])
+  driverRide    DriverRide?
+}
+
+model DriverRide {
+  id            String         @id @default(cuid())
+  bookingId     String         @unique
+  driverId      String
+  pickupLocation String
+  dropoffLocation String
+  fare          Float
+  status        DriverRideStatus @default(SEARCHING)
+  requestedAt   DateTime       @default(now())
+  acceptedAt    DateTime?
+  completedAt   DateTime?
+  expiresAt     DateTime       // Time limit for driver acceptance
+  
+  // Relations
+  booking       Booking        @relation(fields: [bookingId], references: [id])
+  driver        User           @relation(fields: [driverId], references: [id])
+}
+
+model SocialPost {
+  id            String       @id @default(cuid())
+  authorId      String
+  content       String?
+  images        String? // JSON string of image URLs
+  likes         Int          @default(0)
+  isPromotion   Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  // Relations
+  author        User         @relation(fields: [authorId], references: [id])
+  comments      Comment[]
+}
+
+model Comment {
+  id            String   @id @default(cuid())
+  postId        String
+  authorId      String
+  content       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  post          SocialPost @relation(fields: [postId], references: [id])
+  author        User       @relation(fields: [authorId], references: [id])
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  serviceId     String
+  clientId      String
+  rating        Int      // 1-5 stars
+  comment       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  service       Service  @relation(fields: [serviceId], references: [id])
+  client        User     @relation(fields: [clientId], references: [id])
+}
+
+model Subscription {
+  id            String           @id @default(cuid())
+  userId        String           @unique
+  plan          SubscriptionPlan
+  status        SubscriptionStatus @default(ACTIVE)
+  startDate     DateTime         @default(now())
+  endDate       DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  
+  // Relations
+  user          User             @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id            String           @id @default(cuid())
+  userId        String
+  title         String
+  message       String
+  type          NotificationType
+  isRead        Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  
+  // Relations
+  user          User             @relation(fields: [userId], references: [id])
+}
+
+// Enums
+enum UserRole {
+  CLIENT
+  SUPPLIER
+  DRIVER
+  ADMIN
+}
+
+enum ServiceType {
+  EVENT
+  TRANSPORTATION
+  DINING
+  ACCOMMODATION
+}
+
+enum BookingStatus {
+  PENDING
+  PAYMENT_VERIFIED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum DriverRideStatus {
+  SEARCHING
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum SubscriptionPlan {
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  PAYMENT_REQUIRED
+  DRIVER_REQUEST
+  PROMOTION
+  SYSTEM
+}
